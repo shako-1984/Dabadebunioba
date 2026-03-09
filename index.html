@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>დაბადებუნიობა</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='56'>🎂</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8cc7a;
+    --void: #000208;
+    --holo: rgba(100, 220, 255, 0.9);
+  }
+
+  body {
+    background: var(--void);
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Space Mono', monospace;
+    cursor: none;
+  }
+
+  #starfield {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  #canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    cursor: none;
+  }
+
+  .panel {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .panel-birthday {
+    top: 62px;
+    left: 18px;
+  }
+
+  .panel-hologram {
+    top: 62px;
+    right: 18px;
+    text-align: right;
+  }
+
+  .label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.8;
+    margin-bottom: 4px;
+  }
+
+  .panel-hologram .label {
+    color: #64dcff;
+    opacity: 0.9;
+  }
+
+  .date-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 20px rgba(201, 168, 76, 0.6);
+    transition: all 0.1s ease;
+  }
+
+  .panel-hologram .date-display {
+    color: #a0eeff;
+    text-shadow: 0 0 15px rgba(100, 220, 255, 1), 0 0 35px rgba(100, 220, 255, 0.6);
+  }
+
+  .separator {
+    width: 30px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.4;
+    margin: 8px 0;
+  }
+  .panel-hologram .separator {
+    margin-left: auto;
+    background: #64dcff;
+    opacity: 0.6;
+  }
+
+  .day-of-year {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.1em;
+    margin-top: 3px;
+  }
+  .panel-hologram .day-of-year {
+    color: rgba(100, 220, 255, 0.5);
+  }
+
+  .bday-input-wrap {
+    margin-top: 14px;
+  }
+  .bday-input-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: rgba(201,168,76,0.5);
+    margin-bottom: 6px;
+  }
+  .bday-input-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: all;
+  }
+  .bday-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 4px;
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    padding: 5px 10px;
+    width: 130px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .bday-input::placeholder {
+    color: rgba(255,255,255,0.2);
+    font-size: 11px;
+  }
+  .bday-input:focus {
+    border-color: rgba(201,168,76,0.7);
+    background: rgba(255,255,255,0.08);
+  }
+  .bday-btn {
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.4);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    line-height: 1;
+    transition: background 0.2s, transform 0.1s;
+    pointer-events: all;
+  }
+  .bday-btn:hover {
+    background: rgba(201,168,76,0.3);
+    transform: scale(1.1);
+  }
+  .bday-btn:active { transform: scale(0.95); }
+  .bday-error {
+    font-size: 9px;
+    color: rgba(255,100,100,0.7);
+    margin-top: 4px;
+    min-height: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .main-title {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-style: italic;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.6);
+    pointer-events: none;
+    white-space: nowrap;
+    text-shadow: 0 0 20px rgba(201,168,76,0.3);
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+  }
+
+  .instruction {
+    position: fixed;
+    bottom: 44px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    color: rgba(100, 220, 130, 0.7);
+    pointer-events: none;
+    white-space: nowrap;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  .sub-instruction {
+    display: none;
+  }
+
+  .angle-bar {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    width: 200px;
+    height: 2px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 1px;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .angle-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    border-radius: 1px;
+    width: 0%;
+    transition: width 0.1s ease;
+  }
+
+  .copyright {
+    position: fixed;
+    bottom: 16px;
+    right: 20px;
+    z-index: 10;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--gold);
+    opacity: 0.7;
+    pointer-events: none;
+    text-shadow: 0 0 10px rgba(201,168,76,0.4);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<canvas id="canvas"></canvas>
+
+<div class="main-title">დაბადების დღის კალენდარი</div>
+
+<div class="panel panel-birthday">
+  <div class="label">დაბადების დღე</div>
+  <div class="separator"></div>
+  <div class="date-display" id="bday-display">— —</div>
+  <div class="day-of-year" id="bday-doy"></div>
+  <div class="bday-input-wrap">
+    <div class="bday-input-label">ჩაწერე ხელით</div>
+    <div class="bday-input-row">
+      <input class="bday-input" id="bday-input" type="text" placeholder="მაგ: 11 თებ" maxlength="12" autocomplete="off"/>
+      <button class="bday-btn" id="bday-btn" title="ძიება">🎂</button>
+    </div>
+    <div class="bday-error" id="bday-error"></div>
+  </div>
+</div>
+
+<div class="panel panel-hologram">
+  <div class="label">დაბადებუნიობა</div>
+  <div class="separator"></div>
+  <div class="date-display" id="buni-display">— —</div>
+  <div class="day-of-year" id="buni-doy"></div>
+</div>
+
+<div class="angle-bar"><div class="angle-fill" id="angle-fill"></div></div>
+<div class="instruction">გადაათრიე დედამიწა ორბიტაზე<br>გაიგე შენი დაბადებუნიობის დღე</div>
+<div class="copyright">© Sh@ko 1984</div>
+
+<script>
+const MONTHS = [
+  {name:'იანვარი',days:31},{name:'თებერვალი',days:29},{name:'მარტი',days:31},
+  {name:'აპრილი',days:30},{name:'მაისი',days:31},{name:'ივნისი',days:30},
+  {name:'ივლისი',days:31},{name:'აგვისტო',days:31},{name:'სექტემბერი',days:30},
+  {name:'ოქტომბერი',days:31},{name:'ნოემბერი',days:30},{name:'დეკემბერი',days:31}
+];
+const MONTH_SHORT = ['იან','თებ','მარ','აპრ','მაი','ივნ','ივლ','აგვ','სექ','ოქტ','ნოე','დეკ'];
+
+const DAY_TABLE = [];
+for (let m = 0; m < MONTHS.length; m++)
+  for (let d = 1; d <= MONTHS[m].days; d++)
+    DAY_TABLE.push({month:m, day:d, short:MONTH_SHORT[m]});
+
+function dayOfYearToDate(doy) { return DAY_TABLE[((doy-1+366)%366)]; }
+function oppositeDay(doy) { return ((doy-1+183)%366)+1; }
+function angleToDoy(angle) {
+  // clockwise from top: angle=-PI/2 → top → Jan 1
+  // going clockwise means angle increases → later months
+  let a = (angle + Math.PI/2 + Math.PI*2) % (Math.PI*2);
+  let doy = Math.round(a/(Math.PI*2)*366)+1;
+  if (doy>366) doy=1;
+  return doy;
+}
+
+// STARFIELD
+const sfCanvas = document.getElementById('starfield');
+const sfCtx = sfCanvas.getContext('2d');
+let stars = [];
+
+function generateStars() {
+  stars = [];
+  for (let i = 0; i < 500; i++) {
+    stars.push({
+      x: Math.random()*sfCanvas.width,
+      y: Math.random()*sfCanvas.height,
+      r: Math.random()*1.4+0.2,
+      alpha: Math.random()*0.75+0.15,
+      twinkle: Math.random()*Math.PI*2,
+      speed: Math.random()*0.008+0.002
+    });
+  }
+}
+
+function drawStars() {
+  sfCtx.fillStyle='#000208';
+  sfCtx.fillRect(0,0,sfCanvas.width,sfCanvas.height);
+  const t=Date.now()*0.001;
+  for (const s of stars) {
+    const tw=Math.sin(t*s.speed*10+s.twinkle)*0.3+0.7;
+    sfCtx.beginPath();
+    sfCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    sfCtx.fillStyle=`rgba(255,255,255,${s.alpha*tw})`;
+    sfCtx.fill();
+  }
+}
+
+// MAIN
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W,H,cx,cy,orbitA,orbitB;
+
+function resize() {
+  W=canvas.width=sfCanvas.width=window.innerWidth;
+  H=canvas.height=sfCanvas.height=window.innerHeight;
+  cx=W/2; cy=H/2;
+  orbitA=Math.min(W,H)*0.38;
+  orbitB=orbitA*0.72;
+  generateStars();
+}
+
+let earthAngle=-Math.PI/2, isDragging=false, mouseX=0, mouseY=0;
+const EARTH_R=18;
+
+function getEarthPos(a) { return {x:cx+orbitA*Math.cos(a), y:cy+orbitB*Math.sin(a)}; }
+function getOppositePos(a) { return {x:cx+orbitA*Math.cos(a+Math.PI), y:cy+orbitB*Math.sin(a+Math.PI)}; }
+
+function drawSun(t) {
+  const pr=28+Math.sin(t*0.8)*2;
+  const g1=ctx.createRadialGradient(cx,cy,0,cx,cy,pr*4);
+  g1.addColorStop(0,'rgba(255,200,50,0.18)'); g1.addColorStop(0.5,'rgba(255,140,20,0.06)'); g1.addColorStop(1,'rgba(255,80,0,0)');
+  ctx.beginPath(); ctx.arc(cx,cy,pr*4,0,Math.PI*2); ctx.fillStyle=g1; ctx.fill();
+
+  const g2=ctx.createRadialGradient(cx,cy,pr*0.5,cx,cy,pr*1.8);
+  g2.addColorStop(0,'rgba(255,230,100,0.5)'); g2.addColorStop(1,'rgba(255,120,0,0)');
+  ctx.beginPath(); ctx.arc(cx,cy,pr*1.8,0,Math.PI*2); ctx.fillStyle=g2; ctx.fill();
+
+  const g3=ctx.createRadialGradient(cx-5,cy-5,2,cx,cy,pr);
+  g3.addColorStop(0,'#fff5d6'); g3.addColorStop(0.3,'#ffd060'); g3.addColorStop(0.7,'#ff9020'); g3.addColorStop(1,'#cc4400');
+  ctx.beginPath(); ctx.arc(cx,cy,pr,0,Math.PI*2); ctx.fillStyle=g3; ctx.fill();
+}
+
+function drawOrbit() {
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx,cy,orbitA,orbitB,0,0,Math.PI*2);
+  ctx.strokeStyle='rgba(201,168,76,0.15)'; ctx.lineWidth=1;
+  ctx.setLineDash([4,8]); ctx.stroke(); ctx.setLineDash([]);
+
+  let doy=1;
+  for (let m=0; m<12; m++) {
+    const frac=(doy-1)/366;
+    const a=frac*Math.PI*2-Math.PI/2; // clockwise from top, Jan=top
+    const ox=cx+orbitA*Math.cos(a), oy=cy+orbitB*Math.sin(a);
+    const nx=cx+(orbitA+14)*Math.cos(a), ny=cy+(orbitB+14)*Math.sin(a);
+    ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(nx,ny);
+    ctx.strokeStyle='rgba(201,168,76,0.4)'; ctx.lineWidth=1; ctx.stroke();
+
+    const lx=cx+(orbitA+30)*Math.cos(a), ly=cy+(orbitB+30)*Math.sin(a);
+    ctx.font='bold 12px "Space Mono"';
+    ctx.fillStyle='rgba(230,210,150,0.85)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(MONTH_SHORT[m],lx,ly);
+    doy+=MONTHS[m].days;
+  }
+  ctx.restore();
+}
+
+function drawEarth(x,y,r) {
+  ctx.save();
+  const atmo=ctx.createRadialGradient(x,y,r*0.7,x,y,r*1.6);
+  atmo.addColorStop(0,'rgba(80,160,255,0)'); atmo.addColorStop(0.6,'rgba(80,160,255,0.15)'); atmo.addColorStop(1,'rgba(80,160,255,0)');
+  ctx.beginPath(); ctx.arc(x,y,r*1.6,0,Math.PI*2); ctx.fillStyle=atmo; ctx.fill();
+
+  const eg=ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.1,x,y,r);
+  eg.addColorStop(0,'#5bc8f0'); eg.addColorStop(0.3,'#2a7ac7'); eg.addColorStop(0.6,'#1a5c9e');
+  eg.addColorStop(0.75,'#2d7a3a'); eg.addColorStop(0.85,'#3a8c44'); eg.addColorStop(1,'#1a4020');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=eg; ctx.fill();
+
+  const hl=ctx.createRadialGradient(x-r*0.35,y-r*0.35,0,x-r*0.2,y-r*0.2,r*0.7);
+  hl.addColorStop(0,'rgba(255,255,255,0.35)'); hl.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=hl; ctx.fill();
+  ctx.restore();
+}
+
+function drawMoon(ex, ey, t) {
+  const MOON_ORBIT = EARTH_R + 14;
+  const MOON_R = 5;
+  // Moon orbits Earth — independent speed, not tied to drag
+  const moonAngle = t * 1.8;
+  const mx = ex + MOON_ORBIT * Math.cos(moonAngle);
+  const my = ey + MOON_ORBIT * Math.sin(moonAngle);
+
+  // Faint orbit trail
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(ex, ey, MOON_ORBIT, 0, Math.PI*2);
+  ctx.strokeStyle='rgba(180,180,200,0.1)';
+  ctx.lineWidth=0.6;
+  ctx.setLineDash([2,5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Moon body
+  const mg = ctx.createRadialGradient(mx-MOON_R*0.3, my-MOON_R*0.3, 0, mx, my, MOON_R);
+  mg.addColorStop(0,'#f0f0e8');
+  mg.addColorStop(0.4,'#c8c8b8');
+  mg.addColorStop(0.8,'#909080');
+  mg.addColorStop(1,'#606055');
+  ctx.beginPath();
+  ctx.arc(mx, my, MOON_R, 0, Math.PI*2);
+  ctx.fillStyle=mg;
+  ctx.fill();
+
+  // Shadow side (simulate phase)
+  const shadow = ctx.createRadialGradient(mx+MOON_R*0.4, my, 0, mx+MOON_R*0.2, my, MOON_R*1.1);
+  shadow.addColorStop(0,'rgba(0,2,15,0.75)');
+  shadow.addColorStop(1,'rgba(0,2,15,0)');
+  ctx.beginPath();
+  ctx.arc(mx, my, MOON_R, 0, Math.PI*2);
+  ctx.fillStyle=shadow;
+  ctx.fill();
+
+  // Subtle glow
+  const mg2=ctx.createRadialGradient(mx,my,MOON_R*0.5,mx,my,MOON_R*2);
+  mg2.addColorStop(0,'rgba(220,220,200,0.1)');
+  mg2.addColorStop(1,'rgba(220,220,200,0)');
+  ctx.beginPath(); ctx.arc(mx,my,MOON_R*2,0,Math.PI*2);
+  ctx.fillStyle=mg2; ctx.fill();
+
+  ctx.restore();
+}
+
+function drawHoloEarth(x,y,t) {
+  const r=EARTH_R;
+  const flicker=0.7+Math.sin(t*9.1)*0.06+Math.sin(t*17.3)*0.03;
+
+  ctx.save();
+  ctx.globalAlpha=flicker;
+
+  // Outer glow — softer
+  const og=ctx.createRadialGradient(x,y,r*0.5,x,y,r*3);
+  og.addColorStop(0,'rgba(80,200,255,0.25)');
+  og.addColorStop(0.5,'rgba(40,140,255,0.08)');
+  og.addColorStop(1,'rgba(20,80,255,0)');
+  ctx.beginPath(); ctx.arc(x,y,r*3,0,Math.PI*2); ctx.fillStyle=og; ctx.fill();
+
+  // Semi-transparent sphere body
+  const hg=ctx.createRadialGradient(x-r*0.28,y-r*0.28,r*0.05,x,y,r);
+  hg.addColorStop(0,'rgba(180,245,255,0.35)');
+  hg.addColorStop(0.3,'rgba(80,200,255,0.22)');
+  hg.addColorStop(0.65,'rgba(30,130,240,0.18)');
+  hg.addColorStop(1,'rgba(0,40,160,0.12)');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=hg; ctx.fill();
+
+  // Clip meridians & parallels inside sphere
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.clip();
+
+  // Meridians (vertical great circles) — rotating with time
+  const rotOffset = t * 0.25;
+  ctx.strokeStyle='rgba(100,220,255,0.45)';
+  ctx.lineWidth=0.7;
+  const meridianCount = 6;
+  for (let i=0; i<meridianCount; i++) {
+    const angle = (i/meridianCount)*Math.PI + rotOffset;
+    // Project ellipse for each meridian
+    ctx.beginPath();
+    for (let deg=0; deg<=360; deg+=3) {
+      const rad = deg * Math.PI/180;
+      const px = x + r * Math.sin(rad) * Math.cos(angle);
+      const py = y + r * Math.cos(rad);
+      deg===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+
+  // Parallels (latitude lines)
+  ctx.strokeStyle='rgba(100,220,255,0.3)';
+  ctx.lineWidth=0.6;
+  const latLines = [-0.6, -0.3, 0, 0.3, 0.6];
+  for (const lat of latLines) {
+    const pr = Math.sqrt(1-lat*lat)*r;
+    const py = y + lat*r;
+    ctx.beginPath();
+    ctx.ellipse(x, py, pr, pr*0.18, 0, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  ctx.restore(); // unclip
+
+  // Crisp glowing edge
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.strokeStyle='rgba(120,230,255,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // Outer dashed ring
+  ctx.beginPath(); ctx.arc(x,y,r+7,0,Math.PI*2);
+  ctx.strokeStyle='rgba(80,200,255,0.4)'; ctx.lineWidth=0.8;
+  ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
+
+  // Subtle highlight
+  ctx.globalAlpha=flicker*0.4;
+  const sp=ctx.createRadialGradient(x-r*0.3,y-r*0.3,0,x-r*0.3,y-r*0.3,r*0.5);
+  sp.addColorStop(0,'rgba(255,255,255,0.5)'); sp.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=sp; ctx.fill();
+
+  ctx.restore();
+}
+
+function drawDiameterLine(ex,ey,ox,oy) {
+  ctx.save();
+  const grad=ctx.createLinearGradient(ex,ey,ox,oy);
+  grad.addColorStop(0,'rgba(201,168,76,0.6)');
+  grad.addColorStop(0.5,'rgba(201,168,76,0.08)');
+  grad.addColorStop(1,'rgba(100,220,255,0.6)');
+  ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ox,oy);
+  ctx.strokeStyle=grad; ctx.lineWidth=0.8;
+  ctx.setLineDash([6,10]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawCursor(x,y) {
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x-10,y); ctx.lineTo(x+10,y);
+  ctx.moveTo(x,y-10); ctx.lineTo(x,y+10);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function updateUI(doy) {
+  const date=dayOfYearToDate(doy), oppDoy=oppositeDay(doy), oppDate=dayOfYearToDate(oppDoy);
+  // Earth position = birthday (left panel), opposite = bunioba (right holo panel)
+  document.getElementById('bday-display').textContent=`${date.day} ${date.short}`;
+  document.getElementById('bday-doy').textContent=`დღე ${doy}`;
+  document.getElementById('buni-display').textContent=`${oppDate.day} ${oppDate.short}`;
+  document.getElementById('buni-doy').textContent=`დღე ${oppDoy}`;
+  const frac=((earthAngle+Math.PI/2+Math.PI*2)%(Math.PI*2))/(Math.PI*2);
+  document.getElementById('angle-fill').style.width=(frac*100)+'%';
+}
+
+// Input search: parse "11 თებ" or "11 თებერვალი" or "11/02" etc.
+function parseDateInput(raw) {
+  const s = raw.trim().toLowerCase();
+  // Try "DD MonthShort" or "DD MonthFull"
+  const allNames = [...MONTH_SHORT.map(m=>m.toLowerCase()), ...MONTHS.map(m=>m.name.toLowerCase())];
+  for (let m=0; m<12; m++) {
+    const short = MONTH_SHORT[m].toLowerCase();
+    const full  = MONTHS[m].name.toLowerCase();
+    const re1 = new RegExp(`(\\d{1,2})\\s*${short}`);
+    const re2 = new RegExp(`(\\d{1,2})\\s*${full}`);
+    const re3 = new RegExp(`${short}\\s*(\\d{1,2})`);
+    const re4 = new RegExp(`${full}\\s*(\\d{1,2})`);
+    for (const re of [re1,re2,re3,re4]) {
+      const match = s.match(re);
+      if (match) {
+        const day = parseInt(match[1]);
+        if (day>=1 && day<=MONTHS[m].days) {
+          // Find doy
+          let doy=1;
+          for (let i=0;i<m;i++) doy+=MONTHS[i].days;
+          doy += day-1;
+          return doy;
+        }
+      }
+    }
+  }
+  // Try DD/MM or DD.MM
+  const numRe = s.match(/(\d{1,2})[\/\.\-](\d{1,2})/);
+  if (numRe) {
+    const day=parseInt(numRe[1]), mon=parseInt(numRe[2])-1;
+    if (mon>=0&&mon<12&&day>=1&&day<=MONTHS[mon].days) {
+      let doy=1;
+      for (let i=0;i<mon;i++) doy+=MONTHS[i].days;
+      doy+=day-1;
+      return doy;
+    }
+  }
+  return null;
+}
+
+function doyToAngle(doy) {
+  // inverse of angleToDoy: a = (doy-1)/366 * 2PI - PI/2
+  const frac = (doy-1)/366;
+  return frac * Math.PI*2 - Math.PI/2;
+}
+
+function handleBdaySearch() {
+  const raw = document.getElementById('bday-input').value;
+  const err = document.getElementById('bday-error');
+  const doy = parseDateInput(raw);
+  if (doy===null) {
+    err.textContent='ვერ ვიპოვე — სცადე: "11 თებ" ან "11/02"';
+    return;
+  }
+  err.textContent='';
+  earthAngle = doyToAngle(doy);
+}
+
+document.getElementById('bday-btn').addEventListener('click', handleBdaySearch);
+document.getElementById('bday-input').addEventListener('keydown', (e)=>{
+  if (e.key==='Enter') handleBdaySearch();
+});
+
+function getAngleForEllipse(mx,my) {
+  let best=earthAngle, bestDist=Infinity;
+  for (let i=0; i<720; i++) {
+    const a=(i/720)*Math.PI*2;
+    const px=cx+orbitA*Math.cos(a), py=cy+orbitB*Math.sin(a);
+    const d=(px-mx)**2+(py-my)**2;
+    if (d<bestDist){bestDist=d; best=a;}
+  }
+  return best;
+}
+
+canvas.addEventListener('mousedown',(e)=>{
+  const pos=getEarthPos(earthAngle);
+  if ((e.clientX-pos.x)**2+(e.clientY-pos.y)**2<(EARTH_R*2.8)**2) isDragging=true;
+});
+canvas.addEventListener('mousemove',(e)=>{
+  mouseX=e.clientX; mouseY=e.clientY;
+  if (isDragging) earthAngle=getAngleForEllipse(e.clientX,e.clientY);
+});
+canvas.addEventListener('mouseup',()=>isDragging=false);
+canvas.addEventListener('mouseleave',()=>isDragging=false);
+canvas.addEventListener('touchstart',(e)=>{
+  const t=e.touches[0], pos=getEarthPos(earthAngle);
+  if ((t.clientX-pos.x)**2+(t.clientY-pos.y)**2<(EARTH_R*3.5)**2) isDragging=true;
+  e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchmove',(e)=>{
+  const t=e.touches[0]; mouseX=t.clientX; mouseY=t.clientY;
+  if (isDragging) earthAngle=getAngleForEllipse(t.clientX,t.clientY);
+  e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',()=>isDragging=false);
+
+let lastStarUpdate=0;
+
+// ---- PLANETS ----
+// Orbital radii relative to Earth's orbit (orbitA)
+// Mercury: 0.39 AU, Venus: 0.72 AU, Mars: 1.52 AU (Earth=1.0)
+// We use orbitA as Earth's semi-major axis reference
+// Speeds: Mercury fastest, Mars slowest (relative to Earth year)
+// Earth ~ 1 rev/year, Mercury ~4.15x faster, Venus ~1.63x, Mars ~0.53x
+
+function getPlanetOrbit(factor) {
+  // factor relative to Earth's orbitA
+  return { a: orbitA * factor, b: orbitB * factor };
+}
+
+function drawPlanetOrbit(oa, ob, color) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, oa, ob, 0, 0, Math.PI*2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([2, 8]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawMercury(t) {
+  const {a, b} = getPlanetOrbit(0.42);
+  const angle = t * 4.15 * 0.3; // speed scaled for visual appeal
+  const px = cx + a * Math.cos(angle);
+  const py = cy + b * Math.sin(angle);
+  const r = 5;
+
+  drawPlanetOrbit(a, b, 'rgba(180,160,140,0.2)');
+
+  ctx.save();
+  // Glow
+  const glow = ctx.createRadialGradient(px,py,0,px,py,r*2.5);
+  glow.addColorStop(0,'rgba(200,180,160,0.2)');
+  glow.addColorStop(1,'rgba(200,180,160,0)');
+  ctx.beginPath(); ctx.arc(px,py,r*2.5,0,Math.PI*2);
+  ctx.fillStyle=glow; ctx.fill();
+
+  // Body — grey-brown, cratered look
+  const mg = ctx.createRadialGradient(px-r*0.3, py-r*0.3, 0, px, py, r);
+  mg.addColorStop(0,'#d4c4b0');
+  mg.addColorStop(0.4,'#a89880');
+  mg.addColorStop(0.75,'#786858');
+  mg.addColorStop(1,'#504038');
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=mg; ctx.fill();
+
+  // Shadow
+  const sh=ctx.createRadialGradient(px+r*0.4,py+r*0.2,0,px+r*0.3,py,r*1.1);
+  sh.addColorStop(0,'rgba(0,0,0,0.7)'); sh.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=sh; ctx.fill();
+
+  // Label
+  ctx.font='8px Space Mono';
+  ctx.fillStyle='rgba(210,190,170,0.6)';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('მერ', px, py+r+3);
+  ctx.restore();
+}
+
+function drawVenus(t) {
+  const {a, b} = getPlanetOrbit(0.72);
+  const angle = t * 1.63 * 0.3;
+  const px = cx + a * Math.cos(angle);
+  const py = cy + b * Math.sin(angle);
+  const r = 8;
+
+  drawPlanetOrbit(a, b, 'rgba(220,190,100,0.2)');
+
+  ctx.save();
+  // Atmosphere glow — yellowish
+  const glow=ctx.createRadialGradient(px,py,r*0.6,px,py,r*2.2);
+  glow.addColorStop(0,'rgba(255,220,100,0.2)');
+  glow.addColorStop(0.5,'rgba(240,180,60,0.1)');
+  glow.addColorStop(1,'rgba(240,180,60,0)');
+  ctx.beginPath(); ctx.arc(px,py,r*2.2,0,Math.PI*2);
+  ctx.fillStyle=glow; ctx.fill();
+
+  // Body — cream-yellow thick clouds
+  const vg=ctx.createRadialGradient(px-r*0.3,py-r*0.3,r*0.05,px,py,r);
+  vg.addColorStop(0,'#fff0c0');
+  vg.addColorStop(0.3,'#f0d070');
+  vg.addColorStop(0.6,'#d4a840');
+  vg.addColorStop(0.85,'#b08020');
+  vg.addColorStop(1,'#806010');
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=vg; ctx.fill();
+
+  // Cloud bands (subtle)
+  ctx.save();
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2); ctx.clip();
+  ctx.strokeStyle='rgba(255,240,150,0.2)'; ctx.lineWidth=1.5;
+  for (let i=-1; i<=1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(px-r, py+i*r*0.35);
+    ctx.lineTo(px+r, py+i*r*0.35);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Shadow
+  const sh=ctx.createRadialGradient(px+r*0.4,py+r*0.2,0,px+r*0.2,py,r*1.1);
+  sh.addColorStop(0,'rgba(0,0,0,0.6)'); sh.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=sh; ctx.fill();
+
+  // Label
+  ctx.font='8px Space Mono';
+  ctx.fillStyle='rgba(255,220,100,0.6)';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('ვენ', px, py+r+3);
+  ctx.restore();
+}
+
+function drawMars(t) {
+  const {a, b} = getPlanetOrbit(1.62);
+  const angle = t * 0.53 * 0.3;
+  const px = cx + a * Math.cos(angle);
+  const py = cy + b * Math.sin(angle);
+  const r = 7;
+
+  drawPlanetOrbit(a, b, 'rgba(200,100,60,0.2)');
+
+  ctx.save();
+  // Reddish glow
+  const glow=ctx.createRadialGradient(px,py,r*0.5,px,py,r*2.2);
+  glow.addColorStop(0,'rgba(220,100,60,0.2)');
+  glow.addColorStop(0.6,'rgba(200,80,40,0.08)');
+  glow.addColorStop(1,'rgba(200,80,40,0)');
+  ctx.beginPath(); ctx.arc(px,py,r*2.2,0,Math.PI*2);
+  ctx.fillStyle=glow; ctx.fill();
+
+  // Body — red-orange rusty
+  const mrg=ctx.createRadialGradient(px-r*0.3,py-r*0.3,r*0.05,px,py,r);
+  mrg.addColorStop(0,'#ff9070');
+  mrg.addColorStop(0.3,'#d96040');
+  mrg.addColorStop(0.6,'#b84028');
+  mrg.addColorStop(0.85,'#8c2810');
+  mrg.addColorStop(1,'#5c1408');
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=mrg; ctx.fill();
+
+  // Polar ice cap hint
+  ctx.save();
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle='rgba(255,240,240,0.4)';
+  ctx.beginPath(); ctx.ellipse(px, py-r*0.75, r*0.3, r*0.18, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // Shadow
+  const sh=ctx.createRadialGradient(px+r*0.4,py+r*0.2,0,px+r*0.2,py,r*1.1);
+  sh.addColorStop(0,'rgba(0,0,0,0.65)'); sh.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=sh; ctx.fill();
+
+  // Label
+  ctx.font='8px Space Mono';
+  ctx.fillStyle='rgba(255,130,80,0.6)';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('მარ', px, py+r+3);
+  ctx.restore();
+}
+
+function animate(timestamp) {
+  const t=timestamp*0.001;
+  if (timestamp-lastStarUpdate>33){drawStars(); lastStarUpdate=timestamp;}
+  ctx.clearRect(0,0,W,H);
+
+  // Planets behind Earth orbit
+  drawMars(t);
+
+  drawOrbit();
+
+  // Inner planets
+  drawMercury(t);
+  drawVenus(t);
+
+  const ep=getEarthPos(earthAngle), op=getOppositePos(earthAngle);
+  drawDiameterLine(ep.x,ep.y,op.x,op.y);
+  drawHoloEarth(op.x,op.y,t);
+  drawSun(t);
+  drawEarth(ep.x,ep.y,EARTH_R);
+  drawMoon(ep.x,ep.y,t);
+  if (isDragging){
+    ctx.save(); ctx.beginPath(); ctx.arc(ep.x,ep.y,EARTH_R+7,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+  }
+  drawCursor(mouseX,mouseY);
+  updateUI(angleToDoy(earthAngle));
+  requestAnimationFrame(animate);
+}
+
+window.addEventListener('resize',resize);
+resize();
+mouseX=cx+orbitA; mouseY=cy;
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
